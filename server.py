@@ -759,13 +759,12 @@ def health_check():
 # ============================================================
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
-print("\n" + "=" * 50)
-print("  深信院校园办事全流程Agent 后端服务已启动")
-print(f"  监听端口: 0.0.0.0:{port}")
-print("=" * 50 + "\n")
-
 if __name__ == "__main__":
     import uvicorn
     import os
     port = int(os.environ.get("PORT", 8000))
+    print("\n" + "=" * 50)
+    print("  深信院校园办事全流程Agent 后端服务已启动")
+    print(f"  监听端口: 0.0.0.0:{port}")
+    print("=" * 50 + "\n")
     uvicorn.run("server:app", host="0.0.0.0", port=port, reload=False, workers=1)
