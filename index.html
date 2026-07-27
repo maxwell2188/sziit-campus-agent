@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>深信院校园办事全流程Agent</title>
+  <style>
+    :root {
+      --primary: #0F52BA;
+      --primary-light: #3B82F6;
+      --accent: #00D4FF;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --error: #EF4444;
+      --bg: #F8FAFC;
+      --card: #FFFFFF;
+      --text: #0F172A;
+      --text2: #64748B;
+      --text3: #94A3B8;
+      --border: #E2E8F0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #E2E8F0;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      max-width: 390px;
+      width: 100%;
+      height: 100vh;
+      background: #F8FAFC;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.3), 0 0 80px rgba(0, 0, 0, 0.15);
+    }
+
+    .page {
+      display: none;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      opacity: 0;
+      transform: translateX(24px);
+      transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1), transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .page.active {
+      display: flex;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .page.slide-back {
+      transform: translateX(-24px);
+      opacity: 0;
+    }
+
+    /* ========== 通用入场动画 ========== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .anim-fade-up {
+      opacity: 0;
+      animation: fadeInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .anim-fade-down {
+      opacity: 0;
+      animation: fadeInDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .anim-scale-in {
+      opacity: 0;
+      animation: scaleIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .anim-slide-up {
+      opacity: 0;
+      animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* ========== 状态栏 ========== */
+    .status-bar {
+      height: 44px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      font-size: 14px;
+      font-weight: 600;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding-top: 8px;
+    }
+
+    /* ========== 消息气泡 ========== */
+    .msg {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      max-width: 85%;
+      animation: msgIn 0.3s ease-out;
+    }
+
+    .msg.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .msg .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .msg.bot .avatar {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+    }
+
+    .msg.user .avatar {
+      background: #E2E8F0;
+      color: var(--text2);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .msg .bubble {
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .msg.bot .bubble {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+    }
+
+    .msg.user .bubble {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      border-top-right-radius: 4px;
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========== 按钮 ========== */
+    .btn {
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+      min-height: 44px;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+    }
+
+    .btn-outline {
+      background: white;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    /* ========== 输入框 ========== */
+    .input-field {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      outline: none;
+      background: var(--bg);
+      font-family: inherit;
+      box-sizing: border-box;
+      transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(15, 82, 186, 0.08);
+    }
+
+    /* ========== 卡片 ========== */
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(15, 82, 186, 0.06);
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    /* ========== 选项卡片 ========== */
+    .option-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .option-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--primary);
+      text-align: center;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .option-card:hover {
+      background: rgba(15, 82, 186, 0.06);
+      border-color: rgba(15, 82, 186, 0.2);
+    }
+
+    .option-card:active {
+      background: rgba(15, 82, 186, 0.1);
+      transform: scale(0.97);
+    }
+
+    /* ========== 打字动画 ========== */
+    .typing {
+      display: flex;
+      gap: 4px;
+      padding: 10px 14px;
+    }
+
+    .typing span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text3);
+      animation: typingBounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing span:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .typing span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    .type-cursor {
+      animation: blink 0.8s infinite;
+      color: var(--primary);
+      font-weight: 700;
+    }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* ========== 底部输入栏 ========== */
+    .input-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card);
+      padding: 10px 12px;
+      padding-bottom: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* ========== 结果卡片 ========== */
+    .result-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .result-card .rc-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .badge.green {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10B981;
+    }
+
+    .badge.orange {
+      background: rgba(245, 158, 11, 0.1);
+      color: #F59E0B;
+    }
+
+    /* ========== 清单列表 ========== */
+    .check-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .check-list li {
+      font-size: 13px;
+      padding: 4px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: var(--text2);
+    }
+
+    .check-list li .c-icon {
+      flex-shrink: 0;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .check-list li.ok .c-icon { color: var(--success); }
+    .check-list li.warn .c-icon { color: var(--warning); }
+    .check-list li.fail .c-icon { color: var(--error); }
+
+    /* ========== 步骤进度条 ========== */
+    .steps-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      position: relative;
+    }
+
+    .steps-bar .step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      z-index: 2;
+    }
+
+    .steps-bar .step .circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--border);
+      color: var(--text3);
+    }
+
+    .steps-bar .step.active .circle {
+      background: var(--success);
+      color: white;
+    }
+
+    .steps-bar .step.current .circle {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      box-shadow: 0 0 0 4px rgba(15, 82, 186, 0.15);
+    }
+
+    .steps-bar .step .label {
+      font-size: 10px;
+      color: var(--text3);
+      text-align: center;
+    }
+
+    .steps-bar .step.current .label {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .progress-line {
+      position: absolute;
+      top: 14px;
+      left: 12.5%;
+      right: 12.5%;
+      height: 2px;
+      background: var(--border);
+      z-index: 1;
+    }
+
+    .progress-line-fill {
+      height: 100%;
+      background: var(--success);
+      transition: width 0.5s;
+    }
+
+    /* ========== 材料清单 ========== */
+    .material-box {
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .material-box .m-icon {
+      font-size: 32px;
+      margin-bottom: 6px;
+    }
+
+    .material-box .m-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .material-box .m-desc {
+      font-size: 11px;
+      color: var(--text3);
+      margin-bottom: 10px;
+    }
+
+    .material-box .m-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .m-btn {
+      padding: 6px 14px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .m-btn.primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+    }
+
+    .m-btn.outline {
+      background: white;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    /* ========== 警告提示框 ========== */
+    .warning-box {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(239, 68, 68, 0.04));
+      border-left: 3px solid var(--warning);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--text2);
+      line-height: 1.6;
+      margin-top: 8px;
+    }
+
+    .warning-box .w-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--warning);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ========== Markdown 渲染辅助 ========== */
+    .md-bold {
+      font-weight: 700;
+    }
+
+    .md-italic {
+      font-style: italic;
+    }
+
+    .md-code {
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      color: var(--primary);
+    }
+
+    .md-link {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+
+    .md-heading {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .md-list {
+      padding-left: 16px;
+      margin: 4px 0;
+    }
+
+    .md-list li {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+
+    .md-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 8px 0;
+    }
+
+    .md-highlight {
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--primary);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+
+    /* ========== 首页 Hero 区域 ========== */
+    .hero-area {
+      background: linear-gradient(135deg, #0F52BA, #1E40AF);
+      padding: 50px 20px 28px;
+      position: relative;
+    }
+
+    .hero-greeting {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .hero-title {
+      color: white;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 14px;
+      padding: 12px 16px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+    }
+
+    .search-box:focus-within {
+      background: rgba(255, 255, 255, 0.28);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+    }
+
+    .search-box:active {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .hero-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      padding: 0;
+    }
+    .hero-search-input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .hero-search-btn {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      padding: 2px 4px;
+      flex-shrink: 0;
+    }
+    .hero-search-btn:active {
+      color: white;
+    }
+
+    .logout-btn {
+      position: absolute;
+      top: 50px;
+      right: 20px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 101;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .logout-btn:active {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .profile-btn {
+      position: absolute;
+      top: 48px;
+      right: 56px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 101;
+      padding: 4px 6px;
+    }
+    .profile-btn:active {
+      color: white;
+    }
+
+    /* ========== 首页内容区域 ========== */
+    .home-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      padding-bottom: 80px;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      margin-top: 4px;
+    }
+
+    .section-more {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text3);
+      cursor: pointer;
+    }
+
+    /* ========== 场景卡片网格 ========== */
+    .scene-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .scene-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
+      border: 1px solid var(--border);
+    }
+
+    .scene-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(15, 82, 186, 0.08);
+      border-color: rgba(15, 82, 186, 0.15);
+    }
+
+    .scene-card:active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 8px rgba(15, 82, 186, 0.06);
+    }
+
+    .scene-card-wide {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+    }
+
+    .scene-card-wide .scene-info {
+      flex: 1;
+    }
+
+    .scene-card-wide .scene-arrow {
+      font-size: 20px;
+      color: var(--text3);
+      flex-shrink: 0;
+    }
+
+    .scene-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      margin-bottom: 10px;
+    }
+
+    .scene-card-wide .scene-icon {
+      margin-bottom: 0;
+    }
+
+    .scene-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .scene-desc {
+      font-size: 12px;
+      color: var(--text3);
+    }
+
+    /* ========== 登录页 ========== */
+    #loginPage {
+      background: linear-gradient(160deg, #0F52BA 0%, #00D4FF 100%);
+    }
+
+    .login-top {
+      height: 60%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-top .login-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .login-top .login-icon.float {
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .login-top .login-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 8px;
+    }
+
+    .login-top .login-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .login-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card);
+      border-radius: 24px 24px 0 0;
+      padding: 32px 24px 40px;
+    }
+
+    .login-bottom .login-welcome {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .login-bottom .login-hint {
+      font-size: 13px;
+      color: #64748B;
+      margin-bottom: 24px;
+    }
+
+    .login-bottom .form-group {
+      margin-bottom: 16px;
+    }
+
+    .login-bottom .form-group:last-of-type {
+      margin-bottom: 24px;
+    }
+
+    .login-bottom .input-field.error {
+      border-color: var(--error);
+    }
+
+    .login-bottom .login-footer {
+      font-size: 11px;
+      color: #94A3B8;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ========== 对话页导航栏 ========== */
+    .chat-nav {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      padding-top: 48px;
+      min-height: 92px;
+      gap: 8px;
+    }
+
+    .chat-nav .nav-back {
+      font-size: 28px;
+      color: var(--text);
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .chat-nav .nav-label {
+      flex: 1;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(15,82,186,0.08), rgba(0,212,255,0.08));
+      border-radius: 18px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .chat-nav .nav-new {
+      font-size: 12px;
+      color: var(--primary);
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 4px 8px;
+    }
+    .chat-nav .nav-delete {
+      font-size: 16px;
+      color: var(--text3);
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 4px 6px;
+      margin-left: 2px;
+    }
+    .chat-nav .nav-delete:active {
+      color: var(--error);
+    }
+
+    /* ========== 对话消息区域 ========== */
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+      padding-bottom: 80px;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+
+    /* ========== 对话页工具按钮 ========== */
+    .tool-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text3);
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s ease;
+    }
+
+    .tool-btn:hover {
+      background: rgba(15, 82, 186, 0.06);
+    }
+
+    .tool-btn:active {
+      transform: scale(0.9);
+      background: rgba(15, 82, 186, 0.1);
+    }
+
+    /* 图片预览 */
+    .img-preview-wrap {
+      position: absolute;
+      bottom: 100%;
+      left: 12px;
+      right: 12px;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .img-preview-wrap img {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    .img-preview-wrap .img-info {
+      flex: 1;
+      font-size: 12px;
+      color: var(--text2);
+    }
+    .img-preview-wrap .img-remove {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #EF4444;
+      color: white;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .msg .bubble img.msg-image {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 10px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    /* ========== Toast 提示 ========== */
+    .toast {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: rgba(0, 0, 0, 0.78);
+      color: white;
+      font-size: 13px;
+      padding: 10px 20px;
+      border-radius: 20px;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ========== 确认弹窗 ========== */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal-box {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px 20px 20px;
+      width: 280px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+      transform: scale(0.9);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modal-overlay.show .modal-box {
+      transform: scale(1);
+    }
+    .modal-box .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .modal-box .modal-desc {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .modal-actions .btn {
+      flex: 1;
+      min-height: 40px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    .btn-ghost {
+      background: var(--bg);
+      color: var(--text2);
+      border: none;
+    }
+    .btn-danger {
+      background: var(--error);
+      color: white;
+      border: none;
+    }
+
+    /* ========== 历史列表 ========== */
+    .history-list {
+      background: var(--card);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      border-bottom: 1px solid var(--border);
+      animation: historyIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    @keyframes historyIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-item:active {
+      background: var(--bg);
+    }
+
+    .history-item .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .history-item .dot.scholarship { background: var(--success); }
+    .history-item .dot.repair       { background: var(--warning); }
+    .history-item .dot.academic     { background: var(--primary); }
+
+    .history-item .title {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-item .time {
+      font-size: 11px;
+      color: var(--text3);
+      flex-shrink: 0;
+    }
+    .history-item .del-btn {
+      font-size: 18px;
+      color: var(--text3);
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 2px 6px;
+      margin-left: 2px;
+      display: none;
+    }
+    .history-item:active .del-btn,
+    .history-item:hover .del-btn {
+      display: block;
+    }
+    .history-item .del-btn:active {
+      color: var(--error);
+    }
+    .history-all-title {
+      font-size: 13px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .history-all-scene {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 3px;
+    }
+
+    /* ========== 个人中心 ========== */
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 12px;
+      color: white;
+    }
+    .profile-name-display {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .profile-id-display {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+    .profile-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .profile-info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text2);
+      padding: 8px 0;
+    }
+    .profile-info-val {
+      color: var(--text3);
+      font-size: 12px;
+      word-break: break-all;
+      max-width: 60%;
+      text-align: right;
+    }
+
+    .history-loading {
+      text-align: center;
+      color: var(--text3);
+      font-size: 13px;
+      padding: 20px;
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--text3);
+      font-size: 13px;
+      padding: 24px;
+    }
+
+    /* ========== 发送按钮 ========== */
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease, opacity 0.2s ease;
+      opacity: 0.4;
+    }
+
+    .send-btn.has-text {
+      opacity: 1;
+    }
+
+    .send-btn:hover {
+      box-shadow: 0 2px 8px rgba(15, 82, 186, 0.3);
+    }
+
+    .send-btn:active {
+      transform: scale(0.9);
+      box-shadow: 0 1px 4px rgba(15, 82, 186, 0.2);
+    }
+
+    /* ========== 错误气泡 ========== */
+    .msg.bot.error .bubble {
+      border-left: 3px solid var(--error);
+      background: rgba(239, 68, 68, 0.04);
+    }
+
+    .retry-btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--error);
+      background: rgba(239, 68, 68, 0.08);
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .retry-btn:active {
+      background: rgba(239, 68, 68, 0.18);
+    }
+
+    /* ========== 场景标签颜色 ========== */
+    .chat-nav .nav-label.label-scholarship {
+      background: linear-gradient(135deg, rgba(15,82,186,0.1), rgba(59,130,246,0.06));
+      color: var(--primary);
+    }
+    .chat-nav .nav-label.label-repair {
+      background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(52,211,153,0.06));
+      color: #059669;
+    }
+    .chat-nav .nav-label.label-academic {
+      background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,191,36,0.06));
+      color: #D97706;
+    }
+    .chat-nav .nav-label.label-general {
+      background: linear-gradient(135deg, rgba(15,82,186,0.08), rgba(0,212,255,0.08));
+      color: var(--primary);
+    }
+
+    /* ========== 场景快捷入口卡片（general引导） ========== */
+    .scene-entry-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .scene-entry-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .scene-entry-card:hover {
+      background: rgba(15, 82, 186, 0.04);
+      border-color: rgba(15, 82, 186, 0.15);
+    }
+    .scene-entry-card:active {
+      transform: scale(0.97);
+      background: rgba(15, 82, 186, 0.08);
+    }
+    .scene-entry-card .se-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .scene-entry-card .se-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .scene-entry-card .se-desc {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 1px;
+    }
+
+    /* ========== 消息加载中 ========== */
+    .chat-loading {
+      text-align: center;
+      color: var(--text3);
+      font-size: 13px;
+      padding: 40px 20px;
+    }
+
+    /* ========== PC端适配 ========== */
+    @media (min-width: 391px) {
+      .app-container {
+        border-radius: 16px;
+        height: min(100vh - 40px, 844px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="toast" id="globalToast"></div>
+    <div class="modal-overlay" id="confirmModal">
+      <div class="modal-box">
+        <div class="modal-title" id="confirmTitle">提示</div>
+        <div class="modal-desc" id="confirmDesc"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeConfirm()">取消</button>
+          <button class="btn btn-danger" id="confirmOkBtn" onclick="closeConfirm(true)">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page active" id="loginPage">
+
+      <!-- 顶部区域 -->
+      <div class="login-top">
+        <div class="login-icon">🎓</div>
+        <div class="login-title">深信院校园办事助手</div>
+        <div class="login-subtitle">你的专属校园办事小助手</div>
+      </div>
+
+      <!-- 底部白色卡片 -->
+      <div class="login-bottom">
+        <div class="login-welcome">欢迎登录</div>
+        <div class="login-hint">请输入你的学号和姓名开始使用</div>
+
+        <div class="form-group">
+          <input class="input-field" id="studentId" type="text" maxlength="12" placeholder="请输入学号（如2023030101）" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <input class="input-field" id="studentName" type="text" maxlength="10" placeholder="请输入姓名" autocomplete="off">
+        </div>
+
+        <button class="btn btn-primary btn-block" id="loginBtn" onclick="handleLogin()">登录并开始使用</button>
+        
+      </div>
+    </div>
+    <div class="page" id="homePage">
+      <!-- 顶部 Hero 区域 -->
+      <div class="hero-area">
+        <div class="status-bar" style="color:white;">
+          <span id="statusTime">9:41</span>
+          <span>深信院</span>
+        </div>
+        <div class="logout-btn" onclick="logout()">退出</div>
+        <div class="profile-btn" onclick="switchPage('profilePage'); initProfilePage();">👤</div>
+        <div class="hero-greeting" id="homeGreeting">下午好，同学 👋</div>
+        <div class="hero-title">校园办事助手</div>
+        <div class="search-box" onclick="document.getElementById('heroSearchInput').focus()">
+          <span>🔍</span>
+          <input class="hero-search-input" id="heroSearchInput" maxlength="500" placeholder="有什么可以帮你的？" onkeydown="if(event.key==='Enter')heroSearch()">
+          <span class="hero-search-btn" onclick="heroSearch()">➤</span>
+        </div>
+      </div>
+
+      <!-- 内容区域 -->
+      <div class="home-content">
+        <div class="section-title">
+          <span>快捷办事</span>
+          <span class="section-more" onclick="goToChat('general')">全部 ›</span>
+        </div>
+        <div class="scene-grid">
+          <div class="scene-card" onclick="goToChat('scholarship')">
+            <div class="scene-icon" style="background:rgba(15,82,186,0.1);">🎓</div>
+            <div class="scene-name">奖助学金</div>
+            <div class="scene-desc">申请全指引</div>
+          </div>
+          <div class="scene-card" onclick="goToChat('repair')">
+            <div class="scene-icon" style="background:rgba(16,185,129,0.1);">🔧</div>
+            <div class="scene-name">宿舍报修</div>
+            <div class="scene-desc">一键报修</div>
+          </div>
+          <div class="scene-card scene-card-wide" onclick="goToChat('academic')">
+            <div class="scene-icon" style="background:rgba(245,158,11,0.1);">📋</div>
+            <div class="scene-info">
+              <div class="scene-name">学业资格自查</div>
+              <div class="scene-desc">快速了解毕业资格</div>
+            </div>
+            <div class="scene-arrow">›</div>
+          </div>
+        </div>
+
+        <!-- 最近对话区域 -->
+        <div class="section-title">
+          <span>最近对话</span>
+          <span class="section-more" onclick="switchPage('historyPage'); loadHistoryAll();">查看全部</span>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="history-loading">加载中...</div>
+        </div>
+      </div>
+
+      <!-- 底部输入栏 -->
+      <div class="input-bar">
+        <input class="input-field" id="homeInput" maxlength="500" placeholder="输入你的问题..." onkeydown="if(event.key==='Enter')sendHomeMessage()">
+        <button class="send-btn" onclick="sendHomeMessage()">➤</button>
+      </div>
+    </div>
+    <div class="page" id="chatPage">
+      <!-- 顶部导航栏 -->
+      <div class="chat-nav">
+        <div class="nav-back" onclick="goHome()">‹</div>
+        <div class="nav-label" id="chatSceneLabel">💬 校园办事助手</div>
+        <div class="nav-new" onclick="newChat()">＋新对话</div>
+        <div class="nav-delete" onclick="deleteConversation()">🗑</div>
+      </div>
+
+      <!-- 消息区域 -->
+      <div class="chat-body" id="chatBody"></div>
+
+      <!-- 底部输入栏 -->
+      <div class="input-bar" style="position:relative;">
+        <button class="tool-btn" onclick="showToast('演示版本暂不支持语音')">🎙️</button>
+        <input class="input-field" id="chatInput" maxlength="500" placeholder="输入消息..." style="flex:1;" onkeydown="if(event.key==='Enter')sendChatMessage()">
+        <button class="tool-btn" onclick="showToast('图片识别暂未开放，敬请期待')">📷</button>
+        <button class="send-btn" onclick="sendChatMessage()">➤</button>
+      </div>
+    </div>
+
+    <!-- 全部对话页 -->
+    <div class="page" id="historyPage">
+      <div class="chat-nav">
+        <div class="nav-back" onclick="switchPage('homePage'); loadHistory();">‹</div>
+        <div class="nav-label">全部对话</div>
+        <div style="width:36px;"></div>
+      </div>
+      <div class="home-content" id="historyAllList">
+        <div class="history-loading">加载中...</div>
+      </div>
+    </div>
+
+    <!-- 个人中心页 -->
+    <div class="page" id="profilePage">
+      <div class="chat-nav">
+        <div class="nav-back" onclick="switchPage('homePage'); initHomePage();">‹</div>
+        <div class="nav-label">个人中心</div>
+        <div style="width:36px;"></div>
+      </div>
+      <div class="home-content" style="padding-top: 20px;">
+        <div class="profile-avatar">👤</div>
+        <div class="profile-name-display" id="profileNameDisplay"></div>
+        <div class="profile-id-display" id="profileIdDisplay"></div>
+
+        <div class="card" style="margin-top: 20px;">
+          <div class="profile-field">
+            <label>学号</label>
+            <input class="input-field" id="profileStudentId" maxlength="12" placeholder="请输入学号">
+          </div>
+          <div class="profile-field" style="margin-top: 12px;">
+            <label>姓名</label>
+            <input class="input-field" id="profileName" maxlength="10" placeholder="请输入姓名">
+          </div>
+          <button class="btn btn-primary btn-block" onclick="saveProfile()" style="margin-top: 16px;">保存修改</button>
+        </div>
+
+        <div class="card" style="margin-top: 12px;">
+          <div class="profile-info-item">
+            <span>用户ID</span>
+            <span class="profile-info-val" id="profileUserId">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const App = {
+      user: null,
+      currentScene: null,
+      conversationId: null,
+      history: [],
+      lastUserMessage: '',
+      generalRoundCount: 0
+    };
+
+    /* ========== 页面切换 ========== */
+
+    function switchPage(pageId) {
+      var current = document.querySelector('.page.active');
+      var target = document.getElementById(pageId);
+      if (!target) return;
+
+      // 目标页已是当前页，直接触发（首次加载场景）
+      if (current === target) {
+        if (pageId === 'loginPage') animateLoginIn();
+        if (pageId === 'homePage') initHomePage();
+        return;
+      }
+
+      // 当前页面滑出
+      if (current) {
+        current.classList.add('slide-back');
+      }
+
+      // 等待滑出动画完成后切换
+      setTimeout(function () {
+        document.querySelectorAll('.page').forEach(function (page) {
+          page.classList.remove('active', 'slide-back');
+        });
+        target.classList.add('active');
+
+        if (pageId === 'homePage') {
+          initHomePage();
+        } else if (pageId === 'loginPage') {
+          // 等页面过渡完成后再触发登录页入场动画
+          setTimeout(function () { animateLoginIn(); }, 300);
+        }
+      }, 200);
+    }
+
+    /* ========== Toast 提示 ========== */
+
+    var toastTimer = null;
+
+    function showToast(msg) {
+      var toast = document.getElementById('globalToast');
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+
+    /* ========== 确认弹窗 ========== */
+
+    var _confirmCallback = null;
+
+    function showConfirm(title, desc, callback) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmDesc').textContent = desc;
+      var modal = document.getElementById('confirmModal');
+      modal.classList.add('show');
+      _confirmCallback = callback;
+    }
+
+    function closeConfirm(confirmed) {
+      document.getElementById('confirmModal').classList.remove('show');
+      if (_confirmCallback) {
+        _confirmCallback(!!confirmed);
+        _confirmCallback = null;
+      }
+    }
+
+    /* ========== API 请求封装 ========== */
+
+    var API_BASE = '';
+
+    async function api(url, options) {
+      options = options || {};
+      var method = options.method || 'GET';
+      var headers = options.headers || {};
+      headers['Content-Type'] = 'application/json';
+      var body = options.body ? JSON.stringify(options.body) : undefined;
+
+      try {
+        var response = await fetch(API_BASE + url, {
+          method: method,
+          headers: headers,
+          body: body
+        });
+
+        if (!response.ok) {
+          var errorData;
+          try {
+            errorData = await response.json();
+            showToast(errorData.detail || '请求失败');
+          } catch (e) {
+            showToast('服务器错误，请稍后重试');
+          }
+          throw new Error(errorData && errorData.detail ? errorData.detail : '请求失败');
+        }
+
+        return await response.json();
+      } catch (err) {
+        if (err.message && err.message.indexOf('请求失败') === -1) {
+          showToast('网络连接异常，请检查后端是否启动');
+        }
+        throw err;
+      }
+    }
+
+    /* ========== 登录逻辑 ========== */
+
+    function handleLogin() {
+      var studentIdInput = document.getElementById('studentId');
+      var studentNameInput = document.getElementById('studentName');
+      var loginBtn = document.getElementById('loginBtn');
+
+      var studentId = studentIdInput.value.trim();
+      var studentName = studentNameInput.value.trim();
+
+      // 清除之前的错误状态
+      studentIdInput.classList.remove('error');
+      studentNameInput.classList.remove('error');
+
+      // 校验学号
+      if (!studentId || studentId.length < 6) {
+        studentIdInput.classList.add('error');
+        showToast('请输入正确的学号（至少6位）');
+        return;
+      }
+
+      // 校验姓名
+      if (!studentName || studentName.length < 2) {
+        studentNameInput.classList.add('error');
+        showToast('请输入正确的姓名（至少2个字）');
+        return;
+      }
+
+      // 登录中状态
+      loginBtn.disabled = true;
+      loginBtn.textContent = '登录中...';
+
+      // 调用后端API登录
+      api('/api/auth/login', {
+        method: 'POST',
+        body: { student_id: studentId, name: studentName }
+      })
+        .then(function (data) {
+          App.user = {
+            userId: data.user_id,
+            studentId: data.student_id,
+            name: data.name
+          };
+          localStorage.setItem('campus_user', JSON.stringify(App.user));
+          switchPage('homePage');
+          loginBtn.disabled = false;
+          loginBtn.textContent = '登录并开始使用';
+        })
+        .catch(function () {
+          // 错误已在 api() 中通过 showToast 提示
+          loginBtn.disabled = false;
+          loginBtn.textContent = '登录并开始使用';
+        });
+    }
+
+    /* ========== 登录页入场动画 ========== */
+
+    function animateLoginIn() {
+      var icon = document.querySelector('#loginPage .login-icon');
+      var title = document.querySelector('#loginPage .login-title');
+      var subtitle = document.querySelector('#loginPage .login-subtitle');
+      var bottom = document.querySelector('#loginPage .login-bottom');
+      var welcome = document.querySelector('#loginPage .login-welcome');
+      var hint = document.querySelector('#loginPage .login-hint');
+      var groups = document.querySelectorAll('#loginPage .form-group');
+      var btn = document.getElementById('loginBtn');
+
+      // 重置动画
+      [icon, title, subtitle, bottom, welcome, hint, btn].forEach(function (el) {
+        if (el) { el.style.animation = 'none'; el.offsetHeight; }
+      });
+      groups.forEach(function (el) {
+        el.style.animation = 'none'; el.offsetHeight;
+      });
+
+      // 触发动画
+      if (icon) { icon.classList.add('float'); }
+      if (title) { title.style.animation = 'fadeInUp 0.45s 0.15s cubic-bezier(0.4, 0, 0.2, 1) both'; }
+      if (subtitle) { subtitle.style.animation = 'fadeInUp 0.45s 0.25s cubic-bezier(0.4, 0, 0.2, 1) both'; }
+      if (bottom) { bottom.style.animation = 'slideUp 0.45s 0.1s cubic-bezier(0.4, 0, 0.2, 1) both'; }
+      if (welcome) { welcome.style.animation = 'fadeInUp 0.35s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both'; }
+      if (hint) { hint.style.animation = 'fadeInUp 0.35s 0.28s cubic-bezier(0.4, 0, 0.2, 1) both'; }
+      if (groups[0]) { groups[0].style.animation = 'fadeInUp 0.35s 0.36s cubic-bezier(0.4, 0, 0.2, 1) both'; }
+      if (groups[1]) { groups[1].style.animation = 'fadeInUp 0.35s 0.44s cubic-bezier(0.4, 0, 0.2, 1) both'; }
+      if (btn) { btn.style.animation = 'fadeInUp 0.35s 0.52s cubic-bezier(0.4, 0, 0.2, 1) both'; }
+    }
+
+    /* ========== 应用初始化 ========== */
+
+    function initApp() {
+      var savedUser = localStorage.getItem('campus_user');
+      if (savedUser) {
+        try {
+          App.user = JSON.parse(savedUser);
+          switchPage('homePage');
+          return;
+        } catch (e) {
+          localStorage.removeItem('campus_user');
+          App.user = null;
+        }
+      }
+      // 没有登录信息，显示登录页
+      App.user = null;
+      switchPage('loginPage');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      initApp();
+      initInputListeners();
+
+      // 选项卡片事件委托：点击后自动发送对应消息
+      document.getElementById('chatBody').addEventListener('click', function (e) {
+        var card = e.target.closest('.option-card');
+        if (!card) return;
+        var text = card.textContent.trim();
+        if (text) sendUserMsg(text);
+      });
+    });
+
+    /* ========== 首页逻辑 ========== */
+
+    function getGreeting() {
+      var hour = new Date().getHours();
+      if (hour < 12) return '早上好';
+      if (hour < 18) return '下午好';
+      return '晚上好';
+    }
+
+    function initHomePage() {
+      var greeting = getGreeting();
+      var name = (App.user && App.user.name) ? App.user.name : '同学';
+      document.getElementById('homeGreeting').textContent = greeting + '，' + name + ' 👋';
+
+      var now = new Date();
+      var h = now.getHours().toString().padStart(2, '0');
+      var m = now.getMinutes().toString().padStart(2, '0');
+      document.getElementById('statusTime').textContent = h + ':' + m;
+
+      // 场景卡片交错入场（仅首次进入首页）
+      if (!App._homeAnimated) {
+        App._homeAnimated = true;
+        var cards = document.querySelectorAll('#homePage .scene-card');
+        cards.forEach(function (card, idx) {
+          card.style.animation = 'none';
+          card.offsetHeight;
+          card.style.animation = 'fadeInUp 0.4s ' + (0.15 + idx * 0.08) + 's cubic-bezier(0.4, 0, 0.2, 1) both';
+        });
+        var titles = document.querySelectorAll('#homePage .section-title');
+        titles.forEach(function (title, idx) {
+          title.style.animation = 'none';
+          title.offsetHeight;
+          title.style.animation = 'fadeInUp 0.35s ' + (0.35 + idx * 0.1) + 's cubic-bezier(0.4, 0, 0.2, 1) both';
+        });
+      }
+
+      loadHistory();
+    }
+
+    /* ========== 最近对话 ========== */
+
+    var SCENE_COLORS = {
+      scholarship: 'scholarship',
+      repair: 'repair',
+      academic: 'academic'
+    };
+
+    function formatTime(dateStr) {
+      var now = new Date();
+      var date = new Date(dateStr);
+      if (isNaN(date.getTime())) return '';
+      var diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+      var h = date.getHours().toString().padStart(2, '0');
+      var m = date.getMinutes().toString().padStart(2, '0');
+      var month = (date.getMonth() + 1).toString().padStart(2, '0');
+      var day = date.getDate().toString().padStart(2, '0');
+      if (diffDays === 0) return '今天 ' + h + ':' + m;
+      if (diffDays === 1) return '昨天';
+      if (diffDays < 7) return diffDays + '天前';
+      return month + '-' + day;
+    }
+
+    async function loadHistory() {
+      var list = document.getElementById('historyList');
+      if (!App.user || !App.user.userId) {
+        list.innerHTML = '<div class="history-empty">请先登录</div>';
+        return;
+      }
+
+      list.innerHTML = '<div class="history-loading">加载中...</div>';
+
+      try {
+        var conversations = await api('/api/conversations?user_id=' + App.user.userId);
+
+        if (!conversations || conversations.length === 0) {
+          list.innerHTML = '<div class="history-empty">还没有对话记录，点击上方卡片开始咨询吧</div>';
+          return;
+        }
+
+        var html = '';
+        conversations.forEach(function (conv, idx) {
+          var title = conv.last_message || conv.title || '';
+          if (title.length > 20) title = title.substring(0, 20) + '...';
+          html += '<div class="history-item" style="animation-delay:' + (idx * 0.05) + 's">' +
+            '<div class="dot ' + (SCENE_COLORS[conv.scene] || '') + '"></div>' +
+            '<div class="title" onclick="openHistory(\'' + conv.id + '\', \'' + conv.scene + '\')">' + title + '</div>' +
+            '<div class="time">' + formatTime(conv.updated_at) + '</div>' +
+            '<div class="del-btn" onclick="deleteHistoryItem(event, \'' + conv.id + '\')">×</div>' +
+          '</div>';
+        });
+        list.innerHTML = html;
+      } catch (err) {
+        list.innerHTML = '<div class="history-empty" onclick="loadHistory()" style="cursor:pointer;color:var(--primary);">加载失败，点击重试</div>';
+      }
+    }
+
+    async function loadHistoryAll() {
+      var list = document.getElementById('historyAllList');
+      if (!App.user || !App.user.userId) {
+        list.innerHTML = '<div class="history-empty">请先登录</div>';
+        return;
+      }
+
+      list.innerHTML = '<div class="history-loading">加载中...</div>';
+
+      try {
+        var conversations = await api('/api/conversations?user_id=' + App.user.userId);
+
+        if (!conversations || conversations.length === 0) {
+          list.innerHTML = '<div class="history-empty">还没有对话记录</div>';
+          return;
+        }
+
+        var html = '';
+        conversations.forEach(function (conv, idx) {
+          var sceneLabel = SCENE_LABELS[conv.scene] || '💬 通用咨询';
+          var title = conv.last_message || conv.title || '';
+          if (title.length > 30) title = title.substring(0, 30) + '...';
+          html += '<div class="history-item" style="animation-delay:' + (idx * 0.05) + 's">' +
+            '<div class="dot ' + (SCENE_COLORS[conv.scene] || '') + '"></div>' +
+            '<div class="title" onclick="openHistory(\'' + conv.id + '\', \'' + conv.scene + '\')">' +
+              '<div class="history-all-title">' + title + '</div>' +
+              '<div class="history-all-scene">' + sceneLabel + '</div>' +
+            '</div>' +
+            '<div class="time">' + formatTime(conv.updated_at) + '</div>' +
+            '<div class="del-btn" onclick="deleteHistoryItem(event, \'' + conv.id + '\')">×</div>' +
+          '</div>';
+        });
+        list.innerHTML = html;
+      } catch (err) {
+        list.innerHTML = '<div class="history-empty" onclick="loadHistoryAll()" style="cursor:pointer;color:var(--primary);">加载失败，点击重试</div>';
+      }
+    }
+
+    /* ========== 对话页逻辑 ========== */
+
+    var SCENE_LABELS = {
+      scholarship: '🎓 奖助学金咨询',
+      repair: '🔧 宿舍报修服务',
+      academic: '📋 学业资格自查',
+      general: '💬 校园办事助手'
+    };
+
+    var WELCOME_MESSAGES = {
+      scholarship: '你好！我是奖助学金咨询助手，可以帮你了解奖学金、助学金的申请条件、流程和所需材料。你可以直接问我，或者点击下方快捷提问：',
+      repair: '你好！我是宿舍报修服务助手，可以帮你快速提交宿舍报修申请。请描述你的问题，或点击下方快捷提问：',
+      academic: '你好！我是学业资格自查助手，可以帮你查询学分情况、毕业资格审核等信息。请直接提问，或点击下方快捷提问：',
+      general: '你好！我是深信院校园办事助手，可以帮你解答校园办事相关的各种问题。请直接提问，或点击下方快捷提问：'
+    };
+
+    var WELCOME_OPTIONS = {
+      scholarship: [
+        { label: '国家奖学金的申请条件是什么？', value: '国家奖学金的申请条件是什么？' },
+        { label: '国家励志奖学金怎么申请？', value: '国家励志奖学金怎么申请？' },
+        { label: '助学金需要准备哪些材料？', value: '助学金需要准备哪些材料？' },
+        { label: '奖学金的评选流程是怎样的？', value: '奖学金的评选流程是怎样的？' }
+      ],
+      repair: [
+        { label: '空调不制冷怎么办？', value: '空调不制冷怎么办？' },
+        { label: '水龙头漏水如何报修？', value: '水龙头漏水如何报修？' },
+        { label: '宿舍插座没电了', value: '宿舍插座没电了' },
+        { label: '报修流程是怎样的？', value: '报修流程是怎样的？' }
+      ],
+      academic: [
+        { label: '毕业需要修满多少学分？', value: '毕业需要修满多少学分？' },
+        { label: '如何查询我的学分完成情况？', value: '如何查询我的学分完成情况？' },
+        { label: '挂科对毕业有什么影响？', value: '挂科对毕业有什么影响？' },
+        { label: '学业资格自查流程是怎样的？', value: '学业资格自查流程是怎样的？' }
+      ],
+      general: [
+        { label: '奖学金怎么申请？', value: '奖学金怎么申请？' },
+        { label: '宿舍报修怎么操作？', value: '宿舍报修怎么操作？' },
+        { label: '学分和毕业要求是什么？', value: '学分和毕业要求是什么？' },
+        { label: '校园办事有哪些常见问题？', value: '校园办事有哪些常见问题？' }
+      ]
+    };
+
+    function addWelcomeMessage(scene) {
+      var body = document.getElementById('chatBody');
+      if (!body) return;
+      var welcomeText = WELCOME_MESSAGES[scene] || WELCOME_MESSAGES.general;
+      var options = WELCOME_OPTIONS[scene] || WELCOME_OPTIONS.general;
+
+      var html = '<div class="msg bot">' +
+        '<div class="avatar">🤖</div>' +
+        '<div class="bubble">' + welcomeText +
+          '<div class="option-cards">';
+      options.forEach(function (opt, idx) {
+        html += '<div class="option-card" style="animation: fadeInUp 0.3s ' + (0.1 + idx * 0.06) + 's cubic-bezier(0.4, 0, 0.2, 1) both">' + opt.label + '</div>';
+      });
+      html += '</div></div></div>';
+      body.insertAdjacentHTML('beforeend', html);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    async function goToChat(scene, conversationId) {
+      App.currentScene = scene || 'general';
+      App.conversationId = conversationId || null;
+      App.generalRoundCount = 0;
+
+      // 更新场景标签（含颜色）
+      var label = document.getElementById('chatSceneLabel');
+      if (label) {
+        label.textContent = SCENE_LABELS[App.currentScene] || SCENE_LABELS.general;
+        label.className = 'nav-label label-' + App.currentScene;
+      }
+
+      // 清空消息区域
+      var body = document.getElementById('chatBody');
+      if (body) body.innerHTML = '';
+
+      switchPage('chatPage');
+
+      if (App.conversationId) {
+        // 加载历史消息（显示加载中）
+        if (body) body.innerHTML = '<div class="chat-loading">加载中...</div>';
+        try {
+          var messages = await api('/api/conversations/' + App.conversationId + '/messages');
+          if (body) body.innerHTML = '';
+          if (messages && messages.length > 0) {
+            messages.forEach(function (msg) {
+              if (msg.role === 'user') {
+                addUserMessage(msg.content);
+              } else if (msg.role === 'assistant') {
+                addBotMessage(msg.content);
+              }
+            });
+            // 加载完成后滚动到底部
+            if (body) body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+            return;
+          }
+        } catch (err) {
+          if (body) body.innerHTML = '';
+          // 加载失败，显示欢迎消息
+        }
+      }
+
+      // 新对话：发送欢迎消息
+      setTimeout(function () {
+        addWelcomeMessage(App.currentScene);
+      }, 300);
+    }
+
+    function goHome() {
+      switchPage('homePage');
+      loadHistory();
+    }
+
+    function newChat() {
+      App.conversationId = null;
+      App.generalRoundCount = 0;
+      var body = document.getElementById('chatBody');
+      if (body) body.innerHTML = '';
+      setTimeout(function () {
+        addWelcomeMessage(App.currentScene);
+      }, 300);
+    }
+
+    /* ========== 对话发送逻辑 ========== */
+
+    var isLoading = false;
+    var typingEl = null;
+
+    function showTyping() {
+      var body = document.getElementById('chatBody');
+      var html = '<div class="msg bot" id="typingMsg">' +
+        '<div class="avatar">🤖</div>' +
+        '<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>' +
+        '</div>';
+      body.insertAdjacentHTML('beforeend', html);
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+      typingEl = document.getElementById('typingMsg');
+    }
+
+    function removeTyping() {
+      if (typingEl) {
+        typingEl.remove();
+        typingEl = null;
+      }
+    }
+
+    function scrollToBottom() {
+      var body = document.getElementById('chatBody');
+      if (body) body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function renderMessage(role, content) {
+      if (role === 'user') {
+        addUserMessage(content);
+      } else {
+        addBotMessage(content);
+      }
+    }
+
+    async function sendUserMsg(text) {
+      var input = document.getElementById('chatInput');
+      if (!text || isLoading) return;
+
+      isLoading = true;
+      if (input) input.disabled = true;
+
+      // 保存最后一条用户消息供重试
+      App.lastUserMessage = text;
+
+      renderMessage('user', text);
+      if (input) {
+        input.value = '';
+        updateSendBtnState(input);
+      }
+      showTyping();
+
+      // 追踪 general 场景轮次
+      if (App.currentScene === 'general') {
+        App.generalRoundCount++;
+      }
+
+      try {
+        var reply;
+        var body = {
+          user_id: App.user.userId
+        };
+
+        if (!App.conversationId) {
+          // 新对话
+          body.scene = App.currentScene;
+          body.first_message = text;
+          var data = await api('/api/conversations', {
+            method: 'POST',
+            body: body
+          });
+          App.conversationId = data.conversation_id;
+          reply = data.reply;
+        } else {
+          // 已有对话
+          body.message = text;
+          var data = await api('/api/conversations/' + App.conversationId + '/messages', {
+            method: 'POST',
+            body: body
+          });
+          reply = data.reply;
+        }
+
+        removeTyping();
+        typeBotMessage(reply, function () {
+          isLoading = false;
+          if (input) input.disabled = false;
+          // general 连续3轮，自动追加场景入口卡片
+          if (App.currentScene === 'general' && App.generalRoundCount >= 3) {
+            addSceneEntryCards();
+            App.generalRoundCount = 0;
+          }
+        });
+      } catch (err) {
+        removeTyping();
+        isLoading = false;
+        if (input) input.disabled = false;
+        // 显示错误气泡 + 重试按钮
+        addErrorMessage('发送失败，请检查网络后重试');
+      }
+    }
+
+    function addErrorMessage(text) {
+      var body = document.getElementById('chatBody');
+      if (!body) return;
+      var html = '<div class="msg bot error">' +
+        '<div class="avatar">🤖</div>' +
+        '<div class="bubble">' + text +
+          '<br><button class="retry-btn" onclick="retryLastMessage()">点击重试</button>' +
+        '</div>' +
+        '</div>';
+      body.insertAdjacentHTML('beforeend', html);
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function retryLastMessage() {
+      if (!App.lastUserMessage) return;
+      // 移除错误气泡（最后一个 bot 消息）
+      var body = document.getElementById('chatBody');
+      var errorMsgs = body.querySelectorAll('.msg.bot.error');
+      if (errorMsgs.length > 0) {
+        errorMsgs[errorMsgs.length - 1].remove();
+      }
+      // 重新发送
+      sendUserMsg(App.lastUserMessage);
+      // 不重复计数 general 轮次
+      App.generalRoundCount = Math.max(0, App.generalRoundCount - 1);
+    }
+
+    function addSceneEntryCards() {
+      var body = document.getElementById('chatBody');
+      if (!body) return;
+      var entries = [
+        { icon: '🎓', name: '奖助学金咨询', desc: '奖学金、助学金申请', scene: 'scholarship' },
+        { icon: '🔧', name: '宿舍报修服务', desc: '一键报修，快速响应', scene: 'repair' },
+        { icon: '📋', name: '学业资格自查', desc: '学分、毕业资格查询', scene: 'academic' }
+      ];
+      var html = '<div class="msg bot">' +
+        '<div class="avatar">🤖</div>' +
+        '<div class="bubble">我注意到你可能需要更具体的帮助，试试以下场景吧：' +
+          '<div class="scene-entry-cards">';
+      entries.forEach(function (entry) {
+        html += '<div class="scene-entry-card" onclick="goToChat(\'' + entry.scene + '\')">' +
+          '<span class="se-icon">' + entry.icon + '</span>' +
+          '<div><div class="se-name">' + entry.name + '</div><div class="se-desc">' + entry.desc + '</div></div>' +
+          '</div>';
+      });
+      html += '</div></div></div>';
+      body.insertAdjacentHTML('beforeend', html);
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function sendChatMessage() {
+      var input = document.getElementById('chatInput');
+      var text = input.value.trim();
+      if (!text) return;
+      sendUserMsg(text);
+    }
+
+    /* ========== 发送按钮状态 ========== */
+
+    function updateSendBtnState(input) {
+      var btn = input.parentElement.querySelector('.send-btn');
+      if (!btn) return;
+      if (input.value.trim()) {
+        btn.classList.add('has-text');
+      } else {
+        btn.classList.remove('has-text');
+      }
+    }
+
+    function initInputListeners() {
+      var inputs = document.querySelectorAll('.input-area input');
+      inputs.forEach(function (input) {
+        input.addEventListener('input', function () {
+          updateSendBtnState(input);
+        });
+        input.addEventListener('focus', function () {
+          // 移动端键盘弹出时延迟滚动
+          setTimeout(function () {
+            scrollToBottom();
+          }, 300);
+        });
+        // 字数限制
+        input.addEventListener('input', function () {
+          if (input.value.length > 500) {
+            input.value = input.value.substring(0, 500);
+            showToast('消息不能超过500字');
+          }
+        });
+      });
+    }
+
+    // 监听窗口 resize（移动端键盘弹出/收起）
+    var _lastWindowHeight = window.innerHeight;
+    window.addEventListener('resize', function () {
+      var body = document.getElementById('chatBody');
+      if (!body) return;
+      if (window.innerHeight < _lastWindowHeight) {
+        // 键盘弹出，延迟滚动到底部
+        setTimeout(function () {
+          body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+        }, 350);
+      }
+      _lastWindowHeight = window.innerHeight;
+    });
+
+    function addUserMessage(text) {
+      var body = document.getElementById('chatBody');
+      if (!body) return;
+      var name = (App.user && App.user.name) ? App.user.name.charAt(0) : '我';
+      var html = '<div class="msg user">' +
+        '<div class="avatar">' + name + '</div>' +
+        '<div class="bubble">' + text + '</div>' +
+        '</div>';
+      body.insertAdjacentHTML('beforeend', html);
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function addBotMessage(html) {
+      var body = document.getElementById('chatBody');
+      if (!body) return;
+      var msg = '<div class="msg bot">' +
+        '<div class="avatar">🤖</div>' +
+        '<div class="bubble">' + html + '</div>' +
+        '</div>';
+      body.insertAdjacentHTML('beforeend', msg);
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function typeBotMessage(html, callback) {
+      var body = document.getElementById('chatBody');
+      if (!body) return;
+
+      // 提取纯文本用于打字动画
+      var plainText = html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+      var bubbleId = 'typeBubble_' + Date.now();
+      var msg = '<div class="msg bot">' +
+        '<div class="avatar">🤖</div>' +
+        '<div class="bubble" id="' + bubbleId + '"><span class="type-cursor">|</span></div>' +
+        '</div>';
+      body.insertAdjacentHTML('beforeend', msg);
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+
+      var bubble = document.getElementById(bubbleId);
+      if (!bubble) return;
+
+      var i = 0;
+      var speed = 25; // 毫秒/字符
+      var cursorSpan = bubble.querySelector('.type-cursor');
+
+      function typeNext() {
+        if (i < plainText.length) {
+          // 每3个字符滚动一次，减少滚动频率
+          cursorSpan.insertAdjacentText('beforebegin', plainText.charAt(i));
+          i++;
+          if (i % 3 === 0) {
+            body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+          }
+          setTimeout(typeNext, speed);
+        } else {
+          // 打字完成，替换为完整HTML
+          bubble.innerHTML = html;
+          body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+          if (callback) callback();
+        }
+      }
+
+      typeNext();
+    }
+
+    /* ========== 首页跳转对话 ========== */
+
+    function heroSearch() {
+      var input = document.getElementById('heroSearchInput');
+      var text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      updateSendBtnState(input);
+      goToChat('general');
+      setTimeout(function () {
+        var chatInput = document.getElementById('chatInput');
+        if (chatInput) {
+          chatInput.value = text;
+          updateSendBtnState(chatInput);
+          sendChatMessage();
+        }
+      }, 500);
+    }
+
+    function sendHomeMessage() {
+      var input = document.getElementById('homeInput');
+      var text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      updateSendBtnState(input);
+      goToChat('general');
+      setTimeout(function () {
+        var chatInput = document.getElementById('chatInput');
+        if (chatInput) {
+          chatInput.value = text;
+          updateSendBtnState(chatInput);
+          sendChatMessage();
+        }
+      }, 500);
+    }
+
+    function openHistory(convId, scene) {
+      goToChat(scene, convId);
+    }
+
+    async function deleteHistoryItem(e, convId) {
+      e.stopPropagation();
+      showConfirm('删除对话', '确定删除这条对话记录吗？', async function (ok) {
+        if (!ok) return;
+        try {
+          await api('/api/conversations/' + convId, { method: 'DELETE' });
+          showToast('已删除');
+          if (App.conversationId === convId) {
+            App.conversationId = null;
+          }
+          loadHistory();
+          // 如果在全部对话页，也刷新
+          if (document.getElementById('historyAllList').offsetParent) {
+            loadHistoryAll();
+          }
+        } catch (err) {
+          showToast('删除失败');
+        }
+      });
+    }
+
+    async function deleteConversation() {
+      if (!App.conversationId) {
+        showToast('当前没有对话可删除');
+        return;
+      }
+      showConfirm('删除对话', '确定删除当前对话吗？删除后不可恢复。', async function (ok) {
+        if (!ok) return;
+        try {
+          await api('/api/conversations/' + App.conversationId, { method: 'DELETE' });
+          showToast('已删除');
+          App.conversationId = null;
+          goHome();
+        } catch (err) {
+          showToast('删除失败');
+        }
+      });
+    }
+
+    function logout() {
+      App.user = null;
+      App.currentScene = null;
+      App.conversationId = null;
+      App.history = [];
+      localStorage.removeItem('campus_user');
+      switchPage('loginPage');
+    }
+
+    function initProfilePage() {
+      if (!App.user) return;
+      document.getElementById('profileNameDisplay').textContent = App.user.name || '未设置';
+      document.getElementById('profileIdDisplay').textContent = App.user.studentId || '';
+      document.getElementById('profileStudentId').value = App.user.studentId || '';
+      document.getElementById('profileName').value = App.user.name || '';
+      document.getElementById('profileUserId').textContent = App.user.userId || '-';
+
+      // 卡片入场动画
+      var cards = document.querySelectorAll('#profilePage .card');
+      cards.forEach(function (card) {
+        card.style.animation = 'none';
+        card.offsetHeight;
+      });
+      cards.forEach(function (card, idx) {
+        card.style.animation = 'fadeInUp 0.35s ' + (0.1 + idx * 0.08) + 's cubic-bezier(0.4, 0, 0.2, 1) forwards';
+      });
+    }
+
+    function saveProfile() {
+      var newId = document.getElementById('profileStudentId').value.trim();
+      var newName = document.getElementById('profileName').value.trim();
+
+      if (newId.length < 6) {
+        showToast('学号至少需要6位');
+        return;
+      }
+      if (newName.length < 2) {
+        showToast('姓名至少需要2个字');
+        return;
+      }
+
+      App.user.studentId = newId;
+      App.user.name = newName;
+      localStorage.setItem('campus_user', JSON.stringify(App.user));
+      initProfilePage();
+      showToast('保存成功');
+      // 同步更新首页问候语
+      var greeting = document.getElementById('homeGreeting');
+      if (greeting) {
+        greeting.textContent = getGreeting() + '，' + newName + '同学 👋';
+      }
+    }
+  </script>
+</body>
+</html>

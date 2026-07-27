@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>深信院校园办事助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --primary: #0F52BA;
+    --primary-light: #3B82F6;
+    --primary-dark: #0A3A8A;
+    --accent: #00D4FF;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --error: #EF4444;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --text: #0F172A;
+    --text2: #64748B;
+    --text3: #94A3B8;
+    --border: #E2E8F0;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #E2E8F0;
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* 手机外框 */
+  .phone-frame {
+    width: 100%;
+    max-width: 390px;
+    height: 100vh;
+    max-height: 844px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+
+  @media (max-width: 500px) {
+    .phone-frame { max-width: 100%; max-height: 100vh; border-radius: 0; }
+    body { background: var(--bg); }
+  }
+
+  /* 状态栏 */
+  .status-bar {
+    height: 44px;
+    background: transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    font-size: 14px;
+    font-weight: 600;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding-top: 8px;
+  }
+
+  /* 页面容器 */
+  .page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    flex-direction: column;
+  }
+  .page.active { display: flex; }
+
+  /* ===== 首页 ===== */
+  #homePage .home-hero {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, var(--accent) 100%);
+    color: white;
+    padding: 60px 20px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  #homePage .home-hero::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  #homePage .greeting { font-size: 14px; opacity: 0.9; margin-bottom: 4px; }
+  #homePage .hero-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; }
+  #homePage .search-entry {
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    border: 1px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+  }
+  #homePage .search-entry span.icon { font-size: 16px; }
+  #homePage .search-entry span.text { opacity: 0.9; flex: 1; }
+
+  #homePage .home-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    padding-bottom: 80px;
+  }
+
+  .section-label {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 8px 0 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-label .more { font-size: 12px; color: var(--text3); font-weight: 400; }
+
+  .scene-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .scene-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(15,82,186,0.06);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .scene-card:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(15,82,186,0.1);
+  }
+  .scene-card .icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  .scene-card .name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .scene-card .desc { font-size: 11px; color: var(--text3); }
+
+  .scene-card.wide {
+    grid-column: span 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .scene-card.wide .icon { margin-bottom: 0; flex-shrink: 0; }
+  .scene-card.wide .text { flex: 1; }
+  .scene-card.wide .arrow { font-size: 18px; color: var(--text3); }
+
+  .history-list {
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,82,186,0.06);
+    border: 1px solid var(--border);
+  }
+  .history-item {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-item:active { background: var(--bg); }
+  .history-item .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .history-item .text { flex: 1; font-size: 13px; }
+  .history-item .time { font-size: 11px; color: var(--text3); }
+
+  .bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    padding: 10px 12px;
+    padding-bottom: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .bottom-bar input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 10px 16px;
+    font-size: 14px;
+    outline: none;
+    background: var(--bg);
+    font-family: inherit;
+  }
+  .bottom-bar input:focus { border-color: var(--primary); background: white; }
+  .send-btn {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s;
+  }
+  .send-btn:active { transform: scale(0.9); }
+
+  /* ===== 对话页 ===== */
+  #chatPage .chat-header {
+    background: var(--card);
+    padding: 48px 12px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 10;
+  }
+  .back-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--text2);
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .back-btn:active { background: var(--bg); }
+  .chat-scene-tag {
+    flex: 1;
+    background: linear-gradient(135deg, rgba(15,82,186,0.08), rgba(0,212,255,0.08));
+    color: var(--primary);
+    padding: 6px 14px;
+    border-radius: 18px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .more-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text2);
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+
+  #chatPage .chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 12px;
+    padding-bottom: 80px;
+  }
+
+  .msg {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    max-width: 85%;
+    animation: msgIn 0.3s ease-out;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg.user {
+    margin-left: auto;
+    flex-direction: row-reverse;
+  }
+  .msg .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .msg.bot .avatar {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+  }
+  .msg.user .avatar {
+    background: #E2E8F0;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .msg .bubble {
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+  .msg.bot .bubble {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+  .msg.user .bubble {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    border-top-right-radius: 4px;
+  }
+
+  .option-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .option-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 13px;
+    color: var(--primary);
+    text-align: center;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .option-card:active {
+    background: rgba(15,82,186,0.1);
+    transform: scale(0.98);
+  }
+
+  /* 结构化结果卡片 */
+  .result-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 14px;
+    margin-top: 8px;
+    box-shadow: 0 1px 3px rgba(15,82,186,0.06);
+    border: 1px solid var(--border);
+  }
+  .result-card .rc-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .result-card .rc-title .badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(16,185,129,0.1);
+    color: var(--success);
+    font-weight: 600;
+  }
+  .result-card .rc-title .badge.warn {
+    background: rgba(245,158,11,0.1);
+    color: var(--warning);
+  }
+  .check-list { list-style: none; }
+  .check-list li {
+    font-size: 13px;
+    padding: 4px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--text2);
+  }
+  .check-list li .c-icon { flex-shrink: 0; font-size: 14px; }
+  .check-list li.ok .c-icon { color: var(--success); }
+  .check-list li.warn .c-icon { color: var(--warning); }
+
+  .material-box {
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    margin-top: 8px;
+  }
+  .material-box .m-icon { font-size: 32px; margin-bottom: 6px; }
+  .material-box .m-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .material-box .m-desc { font-size: 11px; color: var(--text3); margin-bottom: 10px; }
+  .m-actions { display: flex; gap: 8px; justify-content: center; }
+  .m-btn {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+  }
+  .m-btn.primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+  }
+  .m-btn.outline {
+    background: white;
+    color: var(--primary);
+    border: 1px solid var(--primary) !important;
+  }
+
+  .warning-box {
+    background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(239,68,68,0.04));
+    border-left: 3px solid var(--warning);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .warning-box .w-title {
+    font-weight: 600;
+    color: var(--warning);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  /* 进度步骤条 */
+  .steps-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 16px 12px;
+    background: var(--card);
+    position: relative;
+  }
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    position: relative;
+    z-index: 2;
+  }
+  .step .circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .step.active .circle { background: var(--success); color: white; }
+  .step.current .circle {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    box-shadow: 0 0 0 4px rgba(15,82,186,0.15);
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+  @keyframes pulse-ring {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(15,82,186,0.15); }
+    50% { box-shadow: 0 0 0 8px rgba(15,82,186,0.08); }
+  }
+  .step .label { font-size: 10px; color: var(--text3); }
+  .step.current .label { color: var(--primary); font-weight: 600; }
+  .step.active .label { color: var(--success); font-weight: 600; }
+  .progress-line {
+    position: absolute;
+    top: 30px;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: var(--border);
+  }
+  .progress-line-fill {
+    height: 100%;
+    background: var(--success);
+    transition: width 0.5s ease;
+  }
+
+  /* 加载动画 */
+  .typing {
+    display: flex;
+    gap: 4px;
+    padding: 4px 2px;
+  }
+  .typing span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text3);
+    animation: typing 1.4s ease-in-out infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* 输入栏 */
+  .chat-input-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    padding: 10px 12px;
+    padding-bottom: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text2);
+    font-size: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  .icon-btn:active { background: var(--bg); }
+  .chat-input-bar input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 9px 14px;
+    font-size: 14px;
+    outline: none;
+    background: var(--bg);
+    font-family: inherit;
+  }
+  .chat-input-bar input:focus { border-color: var(--primary); background: white; }
+
+  /* 切换动画 */
+  .page { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <!-- 状态栏 -->
+  <div class="status-bar" style="color: white;" id="statusBar">
+    <span>9:41</span>
+    <span>📶 🔋</span>
+  </div>
+
+  <!-- ===== 首页 ===== -->
+  <div class="page active" id="homePage">
+    <div class="home-hero">
+      <div class="greeting">同学，你好 👋</div>
+      <div class="hero-title">校园办事助手</div>
+      <div class="search-entry" onclick="goToChat('general')">
+        <span class="icon">🔍</span>
+        <span class="text">有什么可以帮你的？</span>
+      </div>
+    </div>
+
+    <div class="home-content">
+      <div class="section-label">
+        <span>快捷办事</span>
+        <span class="more">全部 ›</span>
+      </div>
+      
+      <div class="scene-grid">
+        <div class="scene-card" onclick="goToChat('scholarship')">
+          <div class="icon" style="background:rgba(15,82,186,0.1);color:#0F52BA;">🎓</div>
+          <div class="name">奖助学金</div>
+          <div class="desc">申请全指引</div>
+        </div>
+        <div class="scene-card" onclick="goToChat('repair')">
+          <div class="icon" style="background:rgba(16,185,129,0.1);color:#10B981;">🔧</div>
+          <div class="name">宿舍报修</div>
+          <div class="desc">一键报修</div>
+        </div>
+        <div class="scene-card wide" onclick="goToChat('academic')">
+          <div class="icon" style="background:rgba(245,158,11,0.1);color:#F59E0B;">📋</div>
+          <div class="text">
+            <div class="name">学业资格自查</div>
+            <div class="desc">奖学金/毕业资格智能评估</div>
+          </div>
+          <span class="arrow">›</span>
+        </div>
+      </div>
+
+      <div class="section-label">
+        <span>最近对话</span>
+        <span class="more">查看全部</span>
+      </div>
+
+      <div class="history-list">
+        <div class="history-item" onclick="goToChat('scholarship')">
+          <div class="dot" style="background:var(--success);"></div>
+          <div class="text">国家励志奖学金申请条件</div>
+          <div class="time">今天</div>
+        </div>
+        <div class="history-item" onclick="goToChat('repair')">
+          <div class="dot" style="background:var(--warning);"></div>
+          <div class="text">宿舍空调不制冷报修</div>
+          <div class="time">昨天</div>
+        </div>
+        <div class="history-item" onclick="goToChat('academic')">
+          <div class="dot" style="background:var(--primary);"></div>
+          <div class="text">学业奖学金资格自查</div>
+          <div class="time">3天前</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <input type="text" id="homeInput" placeholder="输入你的问题..." onkeypress="if(event.key==='Enter')sendFromHome()">
+      <button class="send-btn" onclick="sendFromHome()">➤</button>
+    </div>
+  </div>
+
+  <!-- ===== 对话页 ===== -->
+  <div class="page" id="chatPage">
+    <div class="chat-header">
+      <div class="back-btn" onclick="goHome()">‹</div>
+      <div class="chat-scene-tag" id="chatSceneTag">🎓 奖助学金咨询</div>
+      <div class="more-btn">⋯</div>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+      <!-- 消息动态生成 -->
+    </div>
+
+    <div class="chat-input-bar">
+      <div class="icon-btn">🎙️</div>
+      <input type="text" id="chatInput" placeholder="输入消息..." onkeypress="if(event.key==='Enter')sendUserMsg()">
+      <div class="icon-btn">📷</div>
+      <button class="send-btn" onclick="sendUserMsg()">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 场景配置
+  const scenes = {
+    scholarship: {
+      name: '🎓 奖助学金咨询',
+      statusColor: 'white',
+      heroBg: true,
+      firstBotMsg: '你好！我是校园办事助手，专门为你解答奖助学金相关问题。请问你想咨询哪类奖助学金？',
+      options: [
+        '🏆 国家奖学金（8000元/年）',
+        '⭐ 国家励志奖学金（5000元/年）',
+        '💰 国家助学金（最高4200元/年）',
+        '📚 学业奖学金'
+      ]
+    },
+    repair: {
+      name: '🔧 宿舍报修服务',
+      statusColor: 'white',
+      heroBg: true,
+      firstBotMsg: '你好！宿舍设施有问题随时找我。请问是什么东西坏了呀？',
+      options: [
+        '💡 灯/水电问题',
+        '❄️ 空调不制冷/制热',
+        '🚪 家具/门窗/门锁',
+        '🔍 其他问题'
+      ]
+    },
+    academic: {
+      name: '📋 学业资格自查',
+      statusColor: 'white',
+      heroBg: true,
+      firstBotMsg: '你好！我可以帮你自查奖学金资格和毕业资格。请问你想查什么？',
+      options: [
+        '🏆 学业奖学金资格',
+        '🎓 毕业资格自查',
+        '📊 综测加分计算',
+        '🥇 评优评先条件'
+      ]
+    },
+    general: {
+      name: '💬 校园办事助手',
+      statusColor: 'var(--text)',
+      heroBg: false,
+      firstBotMsg: '你好！我是深信院校园办事助手，可以帮你处理：\n\n🎓 奖助学金申请\n🔧 宿舍后勤报修\n📋 学业资格自查\n\n请问有什么可以帮你的？',
+      options: [
+        '🎓 奖助学金咨询',
+        '🔧 宿舍报修',
+        '📋 学业资格自查'
+      ]
+    }
+  };
+
+  let currentScene = 'scholarship';
+  let chatStep = 0;
+
+  // 跳转到对话页
+  function goToChat(scene) {
+    currentScene = scene;
+    chatStep = 0;
+    
+    // 更新场景标签
+    document.getElementById('chatSceneTag').textContent = scenes[scene].name;
+    
+    // 清空消息
+    document.getElementById('chatBody').innerHTML = '';
+    
+    // 切换页面
+    document.getElementById('homePage').classList.remove('active');
+    document.getElementById('chatPage').classList.add('active');
+    
+    // 更新状态栏颜色
+    const sb = document.getElementById('statusBar');
+    sb.style.color = 'var(--text)';
+    
+    // 显示首条消息
+    setTimeout(() => {
+      addBotMsg(scenes[scene].firstBotMsg, scenes[scene].options);
+    }, 300);
+  }
+
+  // 返回首页
+  function goHome() {
+    document.getElementById('chatPage').classList.remove('active');
+    document.getElementById('homePage').classList.add('active');
+    document.getElementById('statusBar').style.color = 'white';
+  }
+
+  // 从首页发送
+  function sendFromHome() {
+    const input = document.getElementById('homeInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    goToChat('general');
+    setTimeout(() => {
+      addUserMsg(text);
+      setTimeout(() => {
+        showTyping();
+        setTimeout(() => {
+          removeTyping();
+          addBotMsg('好的，我来帮你处理这个问题。为了更准确地帮到你，请问你是想咨询哪方面的办事呢？', [
+            '🎓 奖助学金咨询',
+            '🔧 宿舍报修',
+            '📋 学业资格自查'
+          ]);
+        }, 1200);
+      }, 500);
+    }, 400);
+  }
+
+  // 添加Bot消息
+  function addBotMsg(text, options = null, hasResult = false) {
+    const body = document.getElementById('chatBody');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'msg bot';
+    
+    let bubbleHtml = text.replace(/\n/g, '<br>');
+    
+    if (options) {
+      bubbleHtml += `<div class="option-cards">`;
+      options.forEach(opt => {
+        bubbleHtml += `<div class="option-card" onclick="selectOption('${opt}')">${opt}</div>`;
+      });
+      bubbleHtml += `</div>`;
+    }
+    
+    msgDiv.innerHTML = `
+      <div class="avatar">🤖</div>
+      <div class="bubble">${bubbleHtml}</div>
+    `;
+    
+    body.appendChild(msgDiv);
+    scrollToBottom();
+  }
+
+  // 添加用户消息
+  function addUserMsg(text) {
+    const body = document.getElementById('chatBody');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'msg user';
+    msgDiv.innerHTML = `
+      <div class="avatar">我</div>
+      <div class="bubble">${text}</div>
+    `;
+    body.appendChild(msgDiv);
+    scrollToBottom();
+  }
+
+  // 显示打字动画
+  function showTyping() {
+    const body = document.getElementById('chatBody');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'msg bot';
+    msgDiv.id = 'typingMsg';
+    msgDiv.innerHTML = `
+      <div class="avatar">🤖</div>
+      <div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>
+    `;
+    body.appendChild(msgDiv);
+    scrollToBottom();
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typingMsg');
+    if (el) el.remove();
+  }
+
+  // 选择选项
+  function selectOption(optionText) {
+    addUserMsg(optionText);
+    chatStep++;
+    
+    showTyping();
+    
+    setTimeout(() => {
+      removeTyping();
+      handleReply(optionText);
+    }, 1000);
+  }
+
+  // 发送用户消息
+  function sendUserMsg() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    addUserMsg(text);
+    
+    showTyping();
+    setTimeout(() => {
+      removeTyping();
+      addBotMsg('好的，我来帮你查询一下相关信息。这个问题涉及的内容比较多，我整理一下：', [
+        '查看办事流程',
+        '准备材料清单',
+        '常见问题解答'
+      ]);
+    }, 1000);
+  }
+
+  // 处理回复逻辑
+  function handleReply(userChoice) {
+    const scene = currentScene;
+    
+    if (scene === 'scholarship') {
+      if (chatStep === 1) {
+        if (userChoice.includes('国家励志')) {
+          addBotMsg('好的，申请国家励志奖学金需要满足一些基本条件，我先帮你快速判断一下。请问你现在是几年级？', [
+            '大一',
+            '大二',
+            '大三'
+          ]);
+        } else if (userChoice.includes('国家奖学金')) {
+          addBotMsg('国家奖学金是学校最高荣誉的奖学金，奖励标准是每生每年8000元哦！\n\n申请条件比较严格，需要品学兼优、综合表现突出。我们学院每年名额有限（约4名）。\n\n你想了解具体的申请条件吗？', [
+            '查看申请条件',
+            '查看评选流程',
+            '准备材料清单'
+          ]);
+        } else if (userChoice.includes('国家助学金')) {
+          addBotMsg('国家助学金是帮助家庭经济困难学生的资助项目，资助标准：\n\n• 一档：4200元/年\n• 二档：3200元/年\n• 新生：3700元/年\n\n申请助学金需要先完成家庭经济困难认定。请问你已经做过困难认定了吗？', [
+            '✅ 已经认定了',
+            '❌ 还没有认定',
+            '📋 查看认定流程'
+          ]);
+        } else {
+          addBotMsg('好的，学业奖学金是学校为表彰优秀学生设立的奖学金，分为四个等级：\n\n🥇 特等奖：绩点≥4.25\n🥈 一等奖：绩点≥4.0\n🥉 二等奖：绩点≥3.0\n🏅 三等奖：绩点≥2.5\n\n想知道你能评上哪个等级吗？我可以帮你快速自查！', [
+            '🎯 立即自查资格',
+            '📋 查看完整条件',
+            '📅 什么时候评选'
+          ]);
+        }
+      } else if (chatStep === 2 && userChoice === '大二') {
+        addBotMsg('好的，二年级可以申请国家励志奖学金。我帮你做个快速预审：');
+        
+        // 结构化结果卡片
+        const body = document.getElementById('chatBody');
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'msg bot';
+        resultDiv.innerHTML = `
+          <div class="avatar">🤖</div>
+          <div style="flex:1;">
+            <div class="result-card">
+              <div class="rc-title">
+                ✅ 资格预审结果
+                <span class="badge">3/5 基础条件</span>
+              </div>
+              <ul class="check-list">
+                <li class="ok"><span class="c-icon">✓</span>二年级及以上年级</li>
+                <li class="ok"><span class="c-icon">✓</span>具有中华人民共和国国籍</li>
+                <li class="ok"><span class="c-icon">✓</span>家庭经济困难认定（需确认）</li>
+                <li class="warn"><span class="c-icon">⚠</span>需确认成绩排名专业前50%</li>
+                <li class="warn"><span class="c-icon">⚠</span>需确认评选年度内无不及格科目</li>
+              </ul>
+            </div>
+            
+            <div class="result-card">
+              <div class="rc-title">📄 申请材料清单</div>
+              <div class="material-box">
+                <div class="m-icon">📋</div>
+                <div class="m-name">国家励志奖学金申请材料包</div>
+                <div class="m-desc">共 6 项材料 · 含官方模板</div>
+                <div class="m-actions">
+                  <button class="m-btn primary">查看清单</button>
+                  <button class="m-btn outline">导出列表</button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="warning-box">
+              <div class="w-title">⚠️ 避坑提醒</div>
+              申请表涂改无效，填写错误需重新申领；困难证明需加盖官方鲜章；<strong>同一学年国家励志奖学金与国家奖学金、学业奖学金不可兼得</strong>。
+            </div>
+          </div>
+        `;
+        body.appendChild(resultDiv);
+        scrollToBottom();
+        
+        setTimeout(() => {
+          addBotMsg('以上是初步判断，最终结果以学校评审为准。需要我帮你查看详细的申请流程吗？', [
+            '📖 查看完整申请流程',
+            '📅 关键时间节点',
+            '❓ 其他问题'
+          ]);
+        }, 500);
+        
+      } else {
+        addBotMsg('好的，我来为你详细介绍一下。请问还有什么想了解的吗？', [
+          '申请条件是什么？',
+          '需要准备哪些材料？',
+          '什么时候截止申请？'
+        ]);
+      }
+      
+    } else if (scene === 'repair') {
+      if (chatStep === 1) {
+        if (userChoice.includes('空调')) {
+          addBotMsg('空调不制冷的话，先帮你做几个简单排查，看看能不能自己解决：\n\n1️⃣ 检查遥控器电池有没有电\n2️⃣ 确认空调电源插好\n3️⃣ 看看是不是开对了制冷模式\n\n试了之后还是不行吗？', [
+            '试了还是不行，帮我报修',
+            '我再检查一下'
+          ]);
+        } else if (userChoice.includes('水电') || userChoice.includes('灯')) {
+          addBotMsg('灯不亮或者水电问题，先自查一下：\n\n⚡ 检查电闸是不是跳闸了\n💡 看看灯泡是不是松了\n🚰 水龙头阀门有没有完全打开\n\n排查后还是有问题的话，我帮你报修。', [
+            '还是有问题，报修吧',
+            '好的我先试试'
+          ]);
+        } else {
+          addBotMsg('好的，我来帮你处理报修。为了方便维修师傅上门，请告诉我：\n\n1. 你的宿舍是哪栋几号？\n2. 具体是什么东西坏了？\n\n描述越详细，师傅带的工具越全，一次修好的概率越高哦！', [
+            '我来描述一下',
+            '直接报修'
+          ]);
+        }
+      } else if (chatStep === 2 && userChoice.includes('报修')) {
+        addBotMsg('好的，我来帮你生成报修单：');
+        
+        const body = document.getElementById('chatBody');
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'msg bot';
+        resultDiv.innerHTML = `
+          <div class="avatar">🤖</div>
+          <div style="flex:1;">
+            <div class="result-card">
+              <div class="rc-title">
+                🔧 报修单确认
+                <span class="badge warn">待确认</span>
+              </div>
+              <ul class="check-list">
+                <li class="ok"><span class="c-icon">📍</span><strong>位置：</strong>待填写（楼栋+房间号）</li>
+                <li class="ok"><span class="c-icon">🔩</span><strong>类型：</strong>空调维修</li>
+                <li class="warn"><span class="c-icon">📝</span><strong>问题：</strong>空调不制冷，已排查遥控器和电源</li>
+                <li class="warn"><span class="c-icon">📱</span><strong>联系电话：</strong>待填写</li>
+              </ul>
+              <div style="margin-top:12px; display:flex; gap:8px;">
+                <button style="flex:1; padding:10px; border-radius:20px; border:none; background:linear-gradient(135deg,var(--primary),var(--primary-light)); color:white; font-weight:600; font-size:13px; cursor:pointer;">确认提交</button>
+                <button style="flex:1; padding:10px; border-radius:20px; border:1px solid var(--border); background:white; color:var(--text2); font-weight:500; font-size:13px; cursor:pointer;">修改信息</button>
+              </div>
+            </div>
+            
+            <div class="warning-box">
+              <div class="w-title">⏰ 服务时效</div>
+              常规故障工作日24小时内上门维修，师傅会提前电话联系你。紧急故障（水管爆裂、断电、门锁坏）可拨打24小时应急电话。
+            </div>
+          </div>
+        `;
+        body.appendChild(resultDiv);
+        scrollToBottom();
+      } else {
+        addBotMsg('好的，请问还有什么可以帮你的吗？');
+      }
+      
+    } else if (scene === 'academic') {
+      if (chatStep === 1) {
+        if (userChoice.includes('奖学金') || userChoice.includes('学业')) {
+          addBotMsg('好的，我来帮你自查学业奖学金资格。请提供以下信息，我帮你快速评估：\n\n1. 当前年级\n2. 绩点或加权平均分\n3. 专业排名（大概也可以）\n4. 有没有挂科？\n\n也可以一项一项告诉我哦～', [
+            '大二，绩点3.6，排名前20%，无挂科',
+            '我一项一项告诉你'
+          ]);
+        } else if (userChoice.includes('毕业')) {
+          addBotMsg('毕业资格需要同时满足四个条件：\n\n1. 📚 修满规定总学分（普通专业≤185分）\n2. 🎖️ 德育总评合格，无未解除处分\n3. 🏃 体测成绩合格\n4. 📝 学籍注册正常，缴清学费\n\n你目前最担心哪一项呢？', [
+            '学分够不够',
+            '有挂科怎么办',
+            '体测不合格'
+          ]);
+        } else if (userChoice.includes('综测')) {
+          addBotMsg('综合测评总分 = 基础分（60分）+ 素质拓展分（40分），满分100分。\n\n📊 基础分：按学习成绩排名换算\n🎯 素质拓展：德育实践（22分）+ 知行合一（18分）\n\n想知道哪些活动可以加分吗？', [
+            '志愿服务怎么加分',
+            '学科竞赛怎么加分',
+            '完整加分标准'
+          ]);
+        } else {
+          addBotMsg('好的，评优评先的基本条件包括：品德优良、无违纪记录、学业成绩优良、综合测评排名靠前等。\n\n具体要看你想参评哪项荣誉，我可以给你详细说说。', [
+            '三好学生',
+            '优秀学生干部',
+            '优秀毕业生'
+          ]);
+        }
+      } else if (chatStep === 2 && userChoice.includes('绩点3.6')) {
+        addBotMsg('收到！帮你快速评估一下：');
+        
+        const body = document.getElementById('chatBody');
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'msg bot';
+        resultDiv.innerHTML = `
+          <div class="avatar">🤖</div>
+          <div style="flex:1;">
+            
+            <div style="background:white; border-radius:14px; padding:14px; border:1px solid var(--border); margin-bottom:10px;">
+              <div style="font-size:14px; font-weight:600; margin-bottom:12px;">📊 学业奖学金资格评估</div>
+              
+              <div class="steps-bar" style="padding:0 0 12px 0;">
+                <div class="progress-line" style="top:14px;">
+                  <div class="progress-line-fill" style="width:75%;"></div>
+                </div>
+                <div class="step active"><div class="circle">✓</div><div class="label">三等</div></div>
+                <div class="step active"><div class="circle">✓</div><div class="label">二等</div></div>
+                <div class="step current"><div class="circle">?</div><div class="label">一等</div></div>
+                <div class="step"><div class="circle">4</div><div class="label">特等</div></div>
+              </div>
+              
+              <ul class="check-list">
+                <li class="ok"><span class="c-icon">✅</span><strong>三等奖学金：</strong>符合条件（绩点≥2.5）</li>
+                <li class="ok"><span class="c-icon">✅</span><strong>二等奖学金：</strong>符合条件（绩点≥3.0）</li>
+                <li class="warn"><span class="c-icon">⚠️</span><strong>一等奖学金：</strong>差距较小（需绩点≥4.0，差0.4）</li>
+                <li class="warn"><span class="c-icon">❌</span><strong>特等奖学金：</strong>暂不符合（需绩点≥4.25）</li>
+              </ul>
+            </div>
+            
+            <div class="result-card">
+              <div class="rc-title">💡 提升建议</div>
+              <ul class="check-list">
+                <li class="ok"><span class="c-icon">📈</span>绩点再提升0.4分可冲击一等奖学金</li>
+                <li class="ok"><span class="c-icon">🏆</span>参加学科竞赛获奖可加综测分</li>
+                <li class="ok"><span class="c-icon">🤝</span>志愿服务和公共服务可加德育分</li>
+                <li class="ok"><span class="c-icon">📝</span>考取专业技能证书可加6分</li>
+              </ul>
+            </div>
+            
+            <div class="warning-box">
+              <div class="w-title">⚠️ 注意事项</div>
+              以上仅为初步评估，最终以学校和学院正式评审结果为准。申请奖学金还需满足：无挂科、参加公共服务活动、体测合格、无违纪处分等基本条件。
+            </div>
+          </div>
+        `;
+        body.appendChild(resultDiv);
+        scrollToBottom();
+        
+        setTimeout(() => {
+          addBotMsg('需要我帮你查看完整的加分标准，或者制定提升计划吗？', [
+            '📋 完整加分标准',
+            '🎯 定制提升计划',
+            '📅 什么时候评选'
+          ]);
+        }, 500);
+      } else {
+        addBotMsg('好的，请问还有什么想了解的吗？');
+      }
+      
+    } else {
+      // 通用场景
+      if (userChoice.includes('奖助学金')) {
+        currentScene = 'scholarship';
+        document.getElementById('chatSceneTag').textContent = scenes.scholarship.name;
+        chatStep = 0;
+        addBotMsg(scenes.scholarship.firstBotMsg, scenes.scholarship.options);
+      } else if (userChoice.includes('报修')) {
+        currentScene = 'repair';
+        document.getElementById('chatSceneTag').textContent = scenes.repair.name;
+        chatStep = 0;
+        addBotMsg(scenes.repair.firstBotMsg, scenes.repair.options);
+      } else if (userChoice.includes('学业') || userChoice.includes('自查')) {
+        currentScene = 'academic';
+        document.getElementById('chatSceneTag').textContent = scenes.academic.name;
+        chatStep = 0;
+        addBotMsg(scenes.academic.firstBotMsg, scenes.academic.options);
+      } else {
+        addBotMsg('好的，我来帮你处理。请问还有什么需要的吗？');
+      }
+    }
+  }
+
+  // 滚动到底部
+  function scrollToBottom() {
+    const body = document.getElementById('chatBody');
+    body.scrollTop = body.scrollHeight;
+  }
+
+  // 初始化
+  document.getElementById('homeInput').focus();
+</script>
+
+</body>
+</html>
