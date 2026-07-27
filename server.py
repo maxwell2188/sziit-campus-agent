@@ -748,6 +748,12 @@ def api_delete_conversation(conversation_id: str):
         conn.close()
 
 
+@app.get("/health")
+def health_check():
+    """健康检查端点"""
+    return {"status": "ok", "message": "深信院校园办事Agent运行正常"}
+
+
 # ============================================================
 # 10. 静态文件挂载（必须在最后，覆盖所有路由）
 # ============================================================
@@ -755,11 +761,11 @@ app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 print("\n" + "=" * 50)
 print("  深信院校园办事全流程Agent 后端服务已启动")
-print(f"  访问地址: http://localhost:8000")
+print(f"  监听端口: 0.0.0.0:{port}")
 print("=" * 50 + "\n")
 
 if __name__ == "__main__":
     import uvicorn
     import os
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=False, workers=1)
