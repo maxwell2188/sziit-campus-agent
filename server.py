@@ -409,17 +409,27 @@ def _split_chunk(text: str, parent_title: str) -> list:
 
 
 # ============================================================
-# 7. DeepSeek 客户端
+# 7. DeepSeek 客户端（延迟初始化）
 # ============================================================
-deepseek_client = None
-if DEEPSEEK_API_KEY:
-    deepseek_client = OpenAI(
-        api_key=DEEPSEEK_API_KEY,
-        base_url="https://api.deepseek.com"
-    )
-    print("[AI] DeepSeek客户端初始化完成")
-else:
-    print("[AI] DeepSeek客户端未初始化（缺少API Key）")
+_deepseek_client = None
+_client_initialized = False
+
+
+def get_deepseek_client():
+    """延迟初始化并返回DeepSeek客户端实例"""
+    global _deepseek_client, _client_initialized
+    if not _client_initialized:
+        if DEEPSEEK_API_KEY:
+            _deepseek_client = OpenAI(
+                api_key=DEEPSEEK_API_KEY,
+                base_url="https://api.deepseek.com",
+                timeout=60.0
+            )
+            print("[AI] DeepSeek客户端初始化完成")
+        else:
+            print("[AI] DeepSeek客户端未初始化（缺少API Key）")
+        _client_initialized = True
+    return _deepseek_client
 
 # ============================================================
 # 8. DeepSeek 调用辅助函数
@@ -428,7 +438,8 @@ else:
 
 def call_deepseek(scene: str, history: list, current_message: str) -> str:
     """构建完整Prompt并调用DeepSeek，返回Bot回复文本"""
-    if not deepseek_client:
+    client = get_deepseek_client()
+    if not client:
         raise HTTPException(status_code=503, detail="AI服务暂不可用，请检查API Key配置")
 
     messages = [
@@ -457,7 +468,7 @@ def call_deepseek(scene: str, history: list, current_message: str) -> str:
     messages.append({"role": "user", "content": current_message})
 
     try:
-        response = deepseek_client.chat.completions.create(
+        response = client.chat.completions.create(
             model="deepseek-v4-pro",
             messages=messages,
             temperature=0.7,
